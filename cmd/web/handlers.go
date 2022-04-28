@@ -3,14 +3,14 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"strconv"
 )
-
-func home(w http.ResponseWriter, r *http.Request) {
+// Change the signature of the home handler so it is defined as a method against
+// *application.
+func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
-		http.NotFound(w, r)
+		app.notFound(w) // Use the notFound() helper
 		return
 	}
 	// Initialize a slice containing the paths to the two files. Note that the 
@@ -27,8 +27,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 	// response to the user.
 	ts, err := template.ParseFiles(files...)
 	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, "Internal Server Error", 500)
+		app.serverError(w, err) // Use the serverError() helper.
 		return
 	}
 
@@ -37,25 +36,28 @@ func home(w http.ResponseWriter, r *http.Request) {
 	// dynamic data that we want to pass in, which for now we'll leave as nil.
 	err = ts.Execute(w, nil)
 	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, "Internal Server Error", 500)
+		app.serverError(w, err) // Use the serverError() helper.
 	}
 }
 
-func showSnippet(w http.ResponseWriter, r *http.Request) {
+// Change the signature of the showSnippet handler so it is defined as a method
+// agains *application.
+func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil || id < 1 {
-		http.NotFound(w, r)
+		app.notFound(w) // Use notFound() helper.
 		return
 	}
 
 	fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
 }
 
-func createSnippet(w http.ResponseWriter, r *http.Request) {
+// Change the signature of the createSnippet handler so it is defined as a method
+// against *application
+func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodPost)
-		http.Error(w, "Method Not Allowed", 405)
+		app.clientError(w, http.StatusMethodNotAllowed) // Use the clientError() helper.
 		return
 	}
 
